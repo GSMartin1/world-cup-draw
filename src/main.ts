@@ -223,6 +223,29 @@ function updateUI(teams: any[] | undefined, participantCount: number = 0) {
   `;
 
   if (isAdmin) attachEventListeners(teams);
+  // Make sure the share button works for everyone, not just admins
+  const shareBtn = document.getElementById('share-link-btn');
+  if (shareBtn) {
+    shareBtn.onclick = () => {
+      // Create a clean URL without the admin=boss tag
+      const shareUrl = window.location.origin + window.location.pathname + `?roomId=${currentRoomId}`;
+      
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        const originalText = shareBtn.innerHTML;
+        shareBtn.innerHTML = "✅ COPIED!";
+        shareBtn.style.borderColor = "var(--accent-yellow)";
+        
+        // Reset button after 2 seconds
+        setTimeout(() => {
+          shareBtn.innerHTML = originalText;
+          shareBtn.style.borderColor = "";
+        }, 2000);
+      }).catch(() => {
+        // Fallback just in case a browser blocks clipboard access
+        prompt("Copy this link to share:", shareUrl);
+      });
+    };
+  }
 }
 
 function renderDrawGrid(teams: any[]) {
