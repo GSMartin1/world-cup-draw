@@ -299,10 +299,11 @@ function renderProgressGrid(activeTeams: any[], eliminatedTeams: any[], finalSta
 function attachEventListeners(teams: any[]) {
   if (!currentRoomId) return;
 
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', (e) => {
-    activeTab = (e.target as HTMLButtonElement).dataset.tab as 'draw' | 'progress';
-    updateUI(teams); 
-  }));
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+      activeTab = (e.target as HTMLButtonElement).dataset.tab as 'draw' | 'progress';
+      const parts = await client.query(api.participants.getAll, { roomId: currentRoomId! });
+      updateUI(teams, parts.length); 
+    }));
 
   document.querySelectorAll('.status-select-dropdown').forEach(select => select.addEventListener('change', async (e) => {
     const target = e.target as HTMLSelectElement;
@@ -380,56 +381,62 @@ function attachEventListeners(teams: any[]) {
 
   document.getElementById('draw-btn')?.addEventListener('click', async () => {
       if ((document.getElementById('draw-btn') as HTMLButtonElement).disabled) {
-      return alert("Please upload a CSV of names before starting the draw.");
-    }
-    isDrawing = true;
-    updateUI(teams); 
-    try {
-      const result = await client.mutation(api.teams.drawTeam, { roomId: currentRoomId });
-      await new Promise(resolve => setTimeout(resolve, 2500)); 
-      lastDrawnTeam = result; 
-      isDrawing = false;
-      client.query(api.teams.get, { roomId: currentRoomId }).then(updateUI);
-    } catch (err: any) { isDrawing = false; updateUI(teams); alert(err.message); }
-  });
-
-  document.getElementById('reset-btn')?.addEventListener('click', async () => {
-    if (confirm("🚨 Reset entire draw?")) await client.mutation(api.teams.resetDraw, { roomId: currentRoomId });
-  });
-
-  document.getElementById('auto-draw-btn')?.addEventListener('click', async () => {
-    if (!confirm("⚡ Auto-Finish?")) return;
-    isAutoDrawing = true;
-    updateUI(teams); 
-    try {
-      while (true) await client.mutation(api.teams.drawTeam, { roomId: currentRoomId! });
-    } catch (err) { /* finished */ }
-    isAutoDrawing = false;
-    client.query(api.teams.get, { roomId: currentRoomId! }).then(updateUI);
-  });
-
-  document.getElementById('close-modal-btn')?.addEventListener('click', () => { lastDrawnTeam = null; updateUI(teams); });
-
-  const shareBtn = document.getElementById('share-link-btn');
-  if (shareBtn) {
-    shareBtn.onclick = () => {
-      // Create a clean URL: origin (localhost or site.com) + current roomId
-      const shareUrl = window.location.origin + window.location.pathname + `?roomId=${currentRoomId}`;
+        return alert("Please upload a CSV of names before starting the draw.");
+      }
       
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        const originalText = shareBtn.innerHTML;
-        shareBtn.innerHTML = "✅ COPIED!";
-        shareBtn.style.borderColor = "var(--accent-yellow)";
+      // 1. Fetch the count so we don't lose it during the loading animation!
+      const parts = await client.query(api.participants.getAll, { roomId: currentRoomId! });
+      const count = parts.length;
+
+      isDrawing = true;
+      updateUI(teams, count); 
+      
+      try {
+        const result = await client.mutation(api.teams.drawTeam, { roomId: currentRoomId! });
+        await new Promise(resolve => setTimeout(resolve, 2500)); 
+        lastDrawnTeam = result; 
+        isDrawing = false;
         
-        // Reset button after 2 seconds
-        setTimeout(() => {
-          shareBtn.innerHTML = originalText;
-          shareBtn.style.borderColor = "";
-        }, 2000);
-      });
+        // 2. Fetch the fresh teams and pass BOTH arguments back to updateUI
+        const updatedTeams = await client.query(api.teams.get, { roomId: currentRoomId! });
+        updateUI(updatedTeams, count);
+      } catch (err: any) { 
+        isDrawing = false; 
+        updateUI(teams, count); 
+        alert(err.message); 
+      }
+    });
+
+    document.getElementById('reset-btn')?.addEventListener('click', async () => {
+      if (confirm("🚨 Reset entire draw?")) await client.mutation(api.teams.resetDraw, { roomId: currentRoomId! });
+    });
+
+    document.getElementById('auto-draw-btn')?.addEventListener('click', async () => {
+      if (!confirm("⚡ Auto-Finish?")) return;
+      
+      // Fetch the count so the UI doesn't break during auto-draw
+      const parts = await client.query(api.participants.getAll, { roomId: currentRoomId! });
+      const count = parts.length;
+      
+      isAutoDrawing = true;
+      updateUI(teams, count); 
+      
+      try {
+        while (true) await client.mutation(api.teams.drawTeam, { roomId: currentRoomId! });
+      } catch (err) { /* finished */ }
+      
+      isAutoDrawing = false;
+      const updatedTeams = await client.query(api.teams.get, { roomId: currentRoomId! });
+      updateUI(updatedTeams, count);
+    });
+
+    document.getElementById('close-modal-btn')?.addEventListener('click', async () => { 
+      lastDrawnTeam = null; 
+      // Fetch one last time so closing the modal doesn't reset the button to 0
+      const parts = await client.query(api.participants.getAll, { roomId: currentRoomId! });
+      updateUI(teams, parts.length); 
+    });
     };
-  }
-}
 
 // ==========================================
 // 4. APP INITIALIZATION
