@@ -75,7 +75,7 @@ async function renderLobby() {
             <h2 style="margin: 0.5rem 0 1.5rem 0; color: white; font-size: 1.5rem; text-align: center;">Start a New Draw</h2>
             
             <div style="display: flex; flex-direction: column; gap: 0.8rem;">
-              <input type="text" id="room-name-input" class="name-input" placeholder="e.g., Marketing Dept" 
+              <input type="text" id="room-name-input" class="name-input" placeholder="e.g., SCEIS Draw" 
                 style="width: 100%; box-sizing: border-box; background: var(--bg-color); padding: 0.8rem; border-radius: 8px; border: 1px solid var(--card-border); color: white;" />
               <button id="create-room-btn" class="btn-primary" style="width: 100%; padding: 0.8rem; background: var(--accent-yellow); color: black; font-weight: bold;">GENERATE TOURNAMENT</button>
             </div>
@@ -166,9 +166,13 @@ function updateUI(teams: any[] | undefined, participantCount: number = 0) {
       </div>
     </div>
 
-    <header class="main-header">
-      <div class="logo-area" onclick="window.location.href='${isAdmin ? '/?admin=boss' : '/'}'" style="cursor: pointer;">
-        <h1>WORLD CUP 2026</h1><span class="sub-logo">OFFICE DRAW</span>
+      <header class="main-header">
+      <div class="logo-area" onclick="window.location.href='${isAdmin ? '/?admin=boss' : '/'}'" style="cursor: pointer; display: flex; align-items: center; gap: 10px;">
+        <img src="/worldcupicon.png" alt="Trophy Logo" style="height: 64px; width: 64px; image-rendering: pixelated; object-fit: contain;" />
+        <div>
+          <h1 style="margin: 0; line-height: 1.1;">WORLD CUP 2026</h1>
+          <span class="sub-logo" style="display: block; margin-top: 2px;">OFFICE DRAW</span>
+        </div>
       </div>
       ${isAdmin ? `
         <div class="tab-navigation">
@@ -208,7 +212,7 @@ function updateUI(teams: any[] | undefined, participantCount: number = 0) {
           ${isAdmin && activeTab === 'draw' ? `
               <div class="input-group">
                 <button id="draw-btn" class="btn-primary" ${participantCount === 0 || drawnCount === 48 ? 'disabled' : ''}>
-                  ${participantCount === 0 ? 'UPLOAD CSV FIRST' : 'DRAW RANDOM MATCH'}
+                  ${participantCount === 0 ? 'UPLOAD CSV FIRST' : 'DRAW RANDOM TEAM'}
                 </button>
                 <button id="auto-draw-btn" class="btn-secondary" style="border-color: var(--accent-yellow); color: var(--accent-yellow);" ${participantCount === 0 || drawnCount === 48 ? 'disabled' : ''}>
                   ⚡ AUTO FINISH
